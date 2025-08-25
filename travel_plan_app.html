@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行プランマップ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            min-height: 600px;
+        }
+
+        .input-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .map-panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            position: relative;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .japan-map {
+            width: 100%;
+            height: 500px;
+            position: relative;
+            background: linear-gradient(45deg, #e8f4fd 0%, #bddbfa 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .prefecture {
+            position: absolute;
+            background-color: #fff;
+            border: 2px solid #007bff;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .prefecture:hover {
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .prefecture.selected {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .travel-marker {
+            position: absolute;
+            background: #ff6b6b;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 5;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .travel-marker::before {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #ff6b6b;
+        }
+
+        .travel-list {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .travel-item {
+            background: #f8f9fa;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+
+        .travel-item-header {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .travel-item-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-panel {
+                order: 2;
+            }
+            
+            .map-panel {
+                order: 1;
+                height: 400px;
+            }
+            
+            .japan-map {
+                height: 350px;
+            }
+        }
+
+        .hokkaido { top: 20px; left: 80px; }
+        .tohoku { top: 80px; left: 120px; }
+        .kanto { top: 150px; left: 140px; }
+        .chubu { top: 180px; left: 100px; }
+        .kansai { top: 220px; left: 80px; }
+        .chugoku { top: 240px; left: 50px; }
+        .shikoku { top: 280px; left: 80px; }
+        .kyushu { top: 320px; left: 30px; }
+        .okinawa { top: 400px; left: 60px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ 旅行プランマップ</h1>
+        
+        <div class="app-layout">
+            <div class="input-panel">
+                <form id="travelForm">
+                    <div class="form-group">
+                        <label for="destination">目的地</label>
+                        <select id="destination" required>
+                            <option value="">選択してください</option>
+                            <option value="hokkaido">北海道</option>
+                            <option value="tohoku">東北地方</option>
+                            <option value="kanto">関東地方</option>
+                            <option value="chubu">中部地方</option>
+                            <option value="kansai">関西地方</option>
+                            <option value="chugoku">中国地方</option>
+                            <option value="shikoku">四国地方</option>
+                            <option value="kyushu">九州地方</option>
+                            <option value="okinawa">沖縄</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startDate">開始日</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endDate">終了日</label>
+                        <input type="date" id="endDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget">予算（円）</label>
+                        <input type="number" id="budget" min="0" placeholder="例: 50000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="transportation">交通手段</label>
+                        <select id="transportation">
+                            <option value="">選択してください</option>
+                            <option value="train">電車・新幹線</option>
+                            <option value="plane">飛行機</option>
+                            <option value="car">自動車</option>
+                            <option value="bus">バス</option>
+                            <option value="ferry">フェリー</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="activities">予定・活動</label>
+                        <textarea id="activities" placeholder="観光地、イベント、食事など"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">地図に追加</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearMap()">リセット</button>
+                </form>
+
+                <div class="travel-list" id="travelList">
+                    <h3>旅行プラン一覧</h3>
+                </div>
+            </div>
+
+            <div class="map-panel">
+                <div class="japan-map" id="japanMap">
+                    <div class="prefecture hokkaido" data-region="hokkaido">北海道</div>
+                    <div class="prefecture tohoku" data-region="tohoku">東北</div>
+                    <div class="prefecture kanto" data-region="kanto">関東</div>
+                    <div class="prefecture chubu" data-region="chubu">中部</div>
+                    <div class="prefecture kansai" data-region="kansai">関西</div>
+                    <div class="prefecture chugoku" data-region="chugoku">中国</div>
+                    <div class="prefecture shikoku" data-region="shikoku">四国</div>
+                    <div class="prefecture kyushu" data-region="kyushu">九州</div>
+                    <div class="prefecture okinawa" data-region="okinawa">沖縄</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let travelPlans = [];
+        let planCounter = 0;
+
+        const regionNames = {
+            'hokkaido': '北海道',
+            'tohoku': '東北地方', 
+            'kanto': '関東地方',
+            'chubu': '中部地方',
+            'kansai': '関西地方',
+            'chugoku': '中国地方',
+            'shikoku': '四国地方',
+            'kyushu': '九州地方',
+            'okinawa': '沖縄'
+        };
+
+        const transportationNames = {
+            'train': '🚅 電車・新幹線',
+            'plane': '✈️ 飛行機',
+            'car': '🚗 自動車',
+            'bus': '🚌 バス',
+            'ferry': '🚢 フェリー'
+        };
+
+        document.getElementById('travelForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const destination = document.getElementById('destination').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const budget = document.getElementById('budget').value;
+            const transportation = document.getElementById('transportation').value;
+            const activities = document.getElementById('activities').value;
+
+            if (!destination || !startDate || !endDate) {
+                alert('目的地、開始日、終了日は必須項目です');
+                return;
+            }
+
+            const plan = {
+                id: ++planCounter,
+                destination: destination,
+                startDate: startDate,
+                endDate: endDate,
+                budget: budget,
+                transportation: transportation,
+                activities: activities
+            };
+
+            travelPlans.push(plan);
+            updateMap();
+            updateTravelList();
+            document.getElementById('travelForm').reset();
+        });
+
+        function updateMap() {
+            const mapElement = document.getElementById('japanMap');
+            
+            document.querySelectorAll('.travel-marker').forEach(marker => marker.remove());
+            document.querySelectorAll('.prefecture').forEach(pref => pref.classList.remove('selected'));
+
+            travelPlans.forEach((plan, index) => {
+                const prefectureElement = document.querySelector(`[data-region="${plan.destination}"]`);
+                if (prefectureElement) {
+                    prefectureElement.classList.add('selected');
+                    
+                    const marker = document.createElement('div');
+                    marker.className = 'travel-marker';
+                    marker.style.backgroundColor = getRandomColor(index);
+                    
+                    const rect = prefectureElement.getBoundingClientRect();
+                    const mapRect = mapElement.getBoundingClientRect();
+                    
+                    marker.style.left = (prefectureElement.offsetLeft + prefectureElement.offsetWidth / 2 - 40) + 'px';
+                    marker.style.top = (prefectureElement.offsetTop - 30 - (index * 25)) + 'px';
+                    
+                    const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
+                    const duration = calculateDuration(plan.startDate, plan.endDate);
+                    
+                    marker.innerHTML = `
+                        <div style="font-size: 10px;">${regionNames[plan.destination]}</div>
+                        <div style="font-size: 9px;">${budgetText}</div>
+                        <div style="font-size: 8px;">${duration}日間</div>
+                    `;
+                    
+                    mapElement.appendChild(marker);
+                }
+            });
+        }
+
+        function updateTravelList() {
+            const listElement = document.getElementById('travelList');
+            listElement.innerHTML = '<h3>旅行プラン一覧</h3>';
+            
+            travelPlans.forEach(plan => {
+                const item = document.createElement('div');
+                item.className = 'travel-item';
+                
+                const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
+                const transportText = plan.transportation ? transportationNames[plan.transportation] : '交通手段未設定';
+                const duration = calculateDuration(plan.startDate, plan.endDate);
+                
+                item.innerHTML = `
+                    <div class="travel-item-header">${regionNames[plan.destination]} (${duration}日間)</div>
+                    <div class="travel-item-details">
+                        📅 ${plan.startDate} ～ ${plan.endDate}<br>
+                        💰 ${budgetText}<br>
+                        🚗 ${transportText}<br>
+                        ${plan.activities ? `📝 ${plan.activities}` : ''}
+                    </div>
+                `;
+                
+                listElement.appendChild(item);
+            });
+        }
+
+        function calculateDuration(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return diffDays;
+        }
+
+        function getRandomColor(index) {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#fd79a8'];
+            return colors[index % colors.length];
+        }
+
+        function clearMap() {
+            if (confirm('すべての旅行プランをリセットしますか？')) {
+                travelPlans = [];
+                planCounter = 0;
+                updateMap();
+                updateTravelList();
+            }
+        }
+
+        document.querySelectorAll('.prefecture').forEach(prefecture => {
+            prefecture.addEventListener('click', function() {
+                const region = this.getAttribute('data-region');
+                document.getElementById('destination').value = region;
+            });
+        });
+    </script>
+</body>
+</html>
