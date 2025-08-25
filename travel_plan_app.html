@@ -272,6 +272,80 @@
             font-weight: bold;
         }
 
+        .prefecture-shape {
+            position: absolute;
+            fill: rgba(200, 220, 255, 0.3);
+            stroke: #007bff;
+            stroke-width: 1.5;
+            pointer-events: none;
+        }
+
+        .prefecture-shape.highlighted {
+            fill: rgba(0, 123, 255, 0.5);
+            stroke: #0056b3;
+            stroke-width: 2;
+        }
+
+        .compact-marker {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #ff6b6b;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 50;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: all 0.3s;
+        }
+
+        .compact-marker:hover {
+            transform: translate(-50%, -50%) scale(1.3);
+            z-index: 100;
+        }
+
+        .info-popup {
+            position: absolute;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 200;
+            display: none;
+            font-size: 12px;
+        }
+
+        .info-popup.show {
+            display: block;
+        }
+
+        .info-popup h4 {
+            margin: 0 0 8px 0;
+            color: #007bff;
+            font-size: 14px;
+        }
+
+        .info-popup p {
+            margin: 4px 0;
+            color: #333;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #999;
+        }
+
+        .popup-close:hover {
+            color: #333;
+        }
+
         .travel-marker {
             position: absolute;
             background: #ff6b6b;
@@ -449,15 +523,21 @@
                 </div>
                 
                 <div class="detailed-map" id="detailedMap">
+                    <svg id="prefectureSvg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></svg>
                     <div class="clickable-area" id="clickableArea"></div>
                     <div class="map-controls">
                         <button onclick="showJapanMap()">← 日本地図に戻る</button>
                         <button onclick="toggleRoutes()" id="routeToggle">経路表示</button>
+                        <button onclick="toggleShapes()" id="shapeToggle">境界線表示</button>
                     </div>
                     <div id="regionTitle" style="text-align: center; font-weight: bold; padding: 10px; font-size: 18px;"></div>
                     <div id="cityPoints"></div>
                     <div id="routeLines"></div>
                     <div id="locationMarkers"></div>
+                    <div id="infoPopup" class="info-popup">
+                        <span class="popup-close" onclick="hideInfoPopup()">×</span>
+                        <div id="popupContent"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -469,6 +549,7 @@
         let currentRegion = null;
         let showRoutes = true;
         let clickedLocation = null;
+        let showShapes = true;
 
         const regionNames = {
             'hokkaido': '北海道',
@@ -480,6 +561,72 @@
             'shikoku': '四国地方',
             'kyushu': '九州地方',
             'okinawa': '沖縄'
+        };
+
+        const prefectureShapes = {
+            'hokkaido': 'M 180,150 L 200,120 L 250,110 L 300,120 L 350,140 L 380,160 L 390,200 L 370,240 L 340,280 L 300,300 L 250,310 L 200,300 L 170,280 L 150,240 L 160,200 Z',
+            'tohoku': {
+                'aomori': 'M 230,60 L 270,50 L 280,80 L 260,100 L 240,90 Z',
+                'iwate': 'M 280,100 L 320,90 L 340,120 L 320,150 L 290,140 Z',
+                'miyagi': 'M 260,140 L 300,130 L 320,160 L 290,180 L 260,170 Z',
+                'akita': 'M 200,110 L 240,100 L 250,130 L 220,150 L 200,140 Z',
+                'yamagata': 'M 210,160 L 250,150 L 270,180 L 240,200 L 210,190 Z',
+                'fukushima': 'M 260,200 L 300,190 L 320,220 L 290,240 L 260,230 Z'
+            },
+            'kanto': {
+                'ibaraki': 'M 300,140 L 340,130 L 360,160 L 330,180 L 300,170 Z',
+                'tochigi': 'M 260,120 L 300,110 L 320,140 L 290,160 L 260,150 Z',
+                'gunma': 'M 220,130 L 260,120 L 280,150 L 250,170 L 220,160 Z',
+                'saitama': 'M 240,150 L 280,140 L 300,170 L 270,190 L 240,180 Z',
+                'chiba': 'M 300,170 L 340,160 L 360,190 L 330,210 L 300,200 Z',
+                'tokyo': 'M 260,170 L 300,160 L 320,190 L 290,210 L 260,200 Z',
+                'kanagawa': 'M 250,200 L 290,190 L 310,220 L 280,240 L 250,230 Z'
+            },
+            'chubu': {
+                'niigata': 'M 200,80 L 240,70 L 260,100 L 230,120 L 200,110 Z',
+                'toyama': 'M 180,120 L 220,110 L 240,140 L 210,160 L 180,150 Z',
+                'ishikawa': 'M 160,130 L 200,120 L 220,150 L 190,170 L 160,160 Z',
+                'fukui': 'M 140,150 L 180,140 L 200,170 L 170,190 L 140,180 Z',
+                'yamanashi': 'M 240,140 L 280,130 L 300,160 L 270,180 L 240,170 Z',
+                'nagano': 'M 210,120 L 250,110 L 270,140 L 240,160 L 210,150 Z',
+                'gifu': 'M 190,160 L 230,150 L 250,180 L 220,200 L 190,190 Z',
+                'shizuoka': 'M 260,180 L 300,170 L 320,200 L 290,220 L 260,210 Z',
+                'aichi': 'M 230,170 L 270,160 L 290,190 L 260,210 L 230,200 Z'
+            },
+            'kansai': {
+                'mie': 'M 220,180 L 260,170 L 280,200 L 250,220 L 220,210 Z',
+                'shiga': 'M 190,150 L 230,140 L 250,170 L 220,190 L 190,180 Z',
+                'kyoto': 'M 190,140 L 230,130 L 250,160 L 220,180 L 190,170 Z',
+                'osaka': 'M 170,170 L 210,160 L 230,190 L 200,210 L 170,200 Z',
+                'hyogo': 'M 150,170 L 190,160 L 210,190 L 180,210 L 150,200 Z',
+                'nara': 'M 190,190 L 230,180 L 250,210 L 220,230 L 190,220 Z',
+                'wakayama': 'M 160,210 L 200,200 L 220,230 L 190,250 L 160,240 Z'
+            },
+            'chugoku': {
+                'tottori': 'M 240,120 L 280,110 L 300,140 L 270,160 L 240,150 Z',
+                'shimane': 'M 200,130 L 240,120 L 260,150 L 230,170 L 200,160 Z',
+                'okayama': 'M 220,150 L 260,140 L 280,170 L 250,190 L 220,180 Z',
+                'hiroshima': 'M 180,170 L 220,160 L 240,190 L 210,210 L 180,200 Z',
+                'yamaguchi': 'M 100,190 L 140,180 L 160,210 L 130,230 L 100,220 Z'
+            },
+            'shikoku': {
+                'tokushima': 'M 260,180 L 300,170 L 320,200 L 290,220 L 260,210 Z',
+                'kagawa': 'M 220,150 L 260,140 L 280,170 L 250,190 L 220,180 Z',
+                'ehime': 'M 160,170 L 200,160 L 220,190 L 190,210 L 160,200 Z',
+                'kochi': 'M 200,220 L 240,210 L 260,240 L 230,260 L 200,250 Z'
+            },
+            'kyushu': {
+                'fukuoka': 'M 180,90 L 220,80 L 240,110 L 210,130 L 180,120 Z',
+                'saga': 'M 150,110 L 190,100 L 210,130 L 180,150 L 150,140 Z',
+                'nagasaki': 'M 100,130 L 140,120 L 160,150 L 130,170 L 100,160 Z',
+                'kumamoto': 'M 160,170 L 200,160 L 220,190 L 190,210 L 160,200 Z',
+                'oita': 'M 220,130 L 260,120 L 280,150 L 250,170 L 220,160 Z',
+                'miyazaki': 'M 200,190 L 240,180 L 260,210 L 230,230 L 200,220 Z',
+                'kagoshima': 'M 160,240 L 200,230 L 220,260 L 190,280 L 160,270 Z'
+            },
+            'okinawa': {
+                'okinawa': 'M 230,180 L 270,170 L 280,200 L 260,220 L 230,210 Z'
+            }
         };
 
         const prefectureData = {
@@ -626,6 +773,7 @@
             document.querySelectorAll('.city-point').forEach(point => point.classList.remove('selected'));
             document.querySelectorAll('.route-line').forEach(line => line.remove());
             document.querySelectorAll('.location-marker').forEach(marker => marker.remove());
+            hideInfoPopup();
             
             if (document.getElementById('japanMap').style.display !== 'none') {
                 updateJapanMap();
@@ -635,6 +783,9 @@
                     drawRoutes();
                 }
                 drawLocationMarkers();
+                if (showShapes && currentRegion) {
+                    drawPrefectureShapes(currentRegion);
+                }
             }
         }
         
@@ -681,7 +832,7 @@
                     }
                     
                     const marker = document.createElement('div');
-                    marker.className = 'travel-marker';
+                    marker.className = 'compact-marker';
                     marker.style.backgroundColor = getRandomColor(index);
                     
                     let markerX = prefData.x;
@@ -692,19 +843,18 @@
                         markerY = plan.customLocation.y;
                     }
                     
-                    marker.style.left = (markerX - 40) + 'px';
-                    marker.style.top = (markerY - 60 - (index * 25)) + 'px';
+                    marker.style.left = markerX + 'px';
+                    marker.style.top = markerY + 'px';
                     
-                    const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
-                    const duration = calculateDuration(plan.startDate, plan.endDate);
-                    const locationText = plan.specificLocation ? plan.specificLocation : plan.prefecture;
+                    const orderBadge = document.createElement('div');
+                    orderBadge.className = 'order-badge';
+                    orderBadge.textContent = plan.order;
+                    marker.appendChild(orderBadge);
                     
-                    marker.innerHTML = `
-                        <div class="order-badge">${plan.order}</div>
-                        <div style="font-size: 10px;">${locationText}</div>
-                        <div style="font-size: 9px;">${budgetText}</div>
-                        <div style="font-size: 8px;">${duration}日間</div>
-                    `;
+                    marker.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showInfoPopup(plan, e.pageX, e.pageY);
+                    });
                     
                     mapElement.appendChild(marker);
                 }
@@ -801,6 +951,9 @@
             
             updateMap();
             setupClickableArea();
+            if (showShapes) {
+                drawPrefectureShapes(region);
+            }
         }
         
         function drawRoutes() {
@@ -898,6 +1051,84 @@
                     specificLocationInput.focus();
                 });
             }
+        }
+        
+        function drawPrefectureShapes(region) {
+            const svg = document.getElementById('prefectureSvg');
+            svg.innerHTML = '';
+            
+            if (prefectureShapes[region]) {
+                if (typeof prefectureShapes[region] === 'string') {
+                    // 単一の都道府県（北海道、沖縄）
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', prefectureShapes[region]);
+                    path.setAttribute('class', 'prefecture-shape');
+                    svg.appendChild(path);
+                } else {
+                    // 複数の都道府県がある地方
+                    Object.entries(prefectureShapes[region]).forEach(([prefName, pathData]) => {
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('d', pathData);
+                        path.setAttribute('class', 'prefecture-shape');
+                        path.setAttribute('data-prefecture', prefName);
+                        
+                        // 旅行プランがある都道府県をハイライト
+                        const hasPlans = travelPlans.some(plan => 
+                            plan.region === region && 
+                            plan.prefecture.includes(prefName.charAt(0).toUpperCase() + prefName.slice(1))
+                        );
+                        
+                        if (hasPlans) {
+                            path.classList.add('highlighted');
+                        }
+                        
+                        svg.appendChild(path);
+                    });
+                }
+            }
+        }
+        
+        function toggleShapes() {
+            showShapes = !showShapes;
+            const button = document.getElementById('shapeToggle');
+            button.textContent = showShapes ? '境界線非表示' : '境界線表示';
+            
+            const svg = document.getElementById('prefectureSvg');
+            if (showShapes && currentRegion) {
+                drawPrefectureShapes(currentRegion);
+            } else {
+                svg.innerHTML = '';
+            }
+        }
+        
+        function showInfoPopup(plan, x, y) {
+            const popup = document.getElementById('infoPopup');
+            const content = document.getElementById('popupContent');
+            
+            const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
+            const transportText = plan.transportation ? transportationNames[plan.transportation] : '交通手段未設定';
+            const duration = calculateDuration(plan.startDate, plan.endDate);
+            const locationText = plan.specificLocation ? plan.specificLocation : plan.prefecture;
+            
+            content.innerHTML = `
+                <h4>${plan.order}. ${locationText}</h4>
+                <p><strong>📍 場所:</strong> ${plan.prefecture}</p>
+                <p><strong>📅 期間:</strong> ${plan.startDate} ～ ${plan.endDate} (${duration}日間)</p>
+                <p><strong>💰 予算:</strong> ${budgetText}</p>
+                <p><strong>🚗 交通:</strong> ${transportText}</p>
+                ${plan.activities ? `<p><strong>📝 予定:</strong> ${plan.activities}</p>` : ''}
+                ${plan.customLocation ? `<p><strong>🎯 座標:</strong> (${Math.round(plan.customLocation.x)}, ${Math.round(plan.customLocation.y)})</p>` : ''}
+            `;
+            
+            // ポップアップの位置を調整
+            popup.style.left = Math.min(x - 100, window.innerWidth - 250) + 'px';
+            popup.style.top = Math.max(y - 100, 50) + 'px';
+            popup.classList.add('show');
+        }
+        
+        function hideInfoPopup() {
+            const popup = document.getElementById('infoPopup');
+            popup.classList.remove('show');
         }
         
         document.querySelectorAll('.prefecture').forEach(prefecture => {
