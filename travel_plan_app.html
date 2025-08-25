@@ -140,6 +140,79 @@
             color: white;
         }
 
+        .detailed-map {
+            display: none;
+            width: 100%;
+            height: 500px;
+            position: relative;
+            background: #f0f8ff;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #007bff;
+        }
+
+        .detailed-map.active {
+            display: block;
+        }
+
+        .city-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #ff4757;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .city-point:hover {
+            transform: scale(1.5);
+            z-index: 100;
+        }
+
+        .city-point.selected {
+            background-color: #2ed573;
+            transform: scale(1.3);
+        }
+
+        .city-label {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 10px;
+            white-space: nowrap;
+            transform: translate(-50%, -120%);
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 200;
+        }
+
+        .map-controls button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .map-controls button:hover {
+            background: #0056b3;
+        }
+
         .travel-marker {
             position: absolute;
             background: #ff6b6b;
@@ -230,8 +303,8 @@
             <div class="input-panel">
                 <form id="travelForm">
                     <div class="form-group">
-                        <label for="destination">目的地</label>
-                        <select id="destination" required>
+                        <label for="region">地方</label>
+                        <select id="region" required>
                             <option value="">選択してください</option>
                             <option value="hokkaido">北海道</option>
                             <option value="tohoku">東北地方</option>
@@ -242,6 +315,13 @@
                             <option value="shikoku">四国地方</option>
                             <option value="kyushu">九州地方</option>
                             <option value="okinawa">沖縄</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prefecture">都道府県</label>
+                        <select id="prefecture" required>
+                            <option value="">まず地方を選択してください</option>
                         </select>
                     </div>
 
@@ -298,6 +378,14 @@
                     <div class="prefecture kyushu" data-region="kyushu">九州</div>
                     <div class="prefecture okinawa" data-region="okinawa">沖縄</div>
                 </div>
+                
+                <div class="detailed-map" id="detailedMap">
+                    <div class="map-controls">
+                        <button onclick="showJapanMap()">← 日本地図に戻る</button>
+                    </div>
+                    <div id="regionTitle" style="text-align: center; font-weight: bold; padding: 10px; font-size: 18px;"></div>
+                    <div id="cityPoints"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -305,6 +393,7 @@
     <script>
         let travelPlans = [];
         let planCounter = 0;
+        let currentRegion = null;
 
         const regionNames = {
             'hokkaido': '北海道',
@@ -318,6 +407,74 @@
             'okinawa': '沖縄'
         };
 
+        const prefectureData = {
+            'hokkaido': [
+                {name: '北海道', x: 250, y: 200, isMain: true}
+            ],
+            'tohoku': [
+                {name: '青森県', x: 250, y: 80},
+                {name: '岩手県', x: 300, y: 120},
+                {name: '宮城県', x: 280, y: 160},
+                {name: '秋田県', x: 220, y: 130},
+                {name: '山形県', x: 230, y: 180},
+                {name: '福島県', x: 280, y: 220}
+            ],
+            'kanto': [
+                {name: '茨城県', x: 320, y: 160},
+                {name: '栃木県', x: 280, y: 140},
+                {name: '群馬県', x: 240, y: 150},
+                {name: '埼玉県', x: 260, y: 170},
+                {name: '千葉県', x: 320, y: 190},
+                {name: '東京都', x: 280, y: 190},
+                {name: '神奈川県', x: 270, y: 220}
+            ],
+            'chubu': [
+                {name: '新潟県', x: 220, y: 100},
+                {name: '富山県', x: 200, y: 140},
+                {name: '石川県', x: 180, y: 150},
+                {name: '福井県', x: 160, y: 170},
+                {name: '山梨県', x: 260, y: 160},
+                {name: '長野県', x: 230, y: 140},
+                {name: '岐阜県', x: 210, y: 180},
+                {name: '静岡県', x: 280, y: 200},
+                {name: '愛知県', x: 250, y: 190}
+            ],
+            'kansai': [
+                {name: '三重県', x: 240, y: 200},
+                {name: '滋賀県', x: 210, y: 170},
+                {name: '京都府', x: 210, y: 160},
+                {name: '大阪府', x: 190, y: 190},
+                {name: '兵庫県', x: 170, y: 190},
+                {name: '奈良県', x: 210, y: 210},
+                {name: '和歌山県', x: 180, y: 230}
+            ],
+            'chugoku': [
+                {name: '鳥取県', x: 260, y: 140},
+                {name: '島根県', x: 220, y: 150},
+                {name: '岡山県', x: 240, y: 170},
+                {name: '広島県', x: 200, y: 190},
+                {name: '山口県', x: 120, y: 210}
+            ],
+            'shikoku': [
+                {name: '徳島県', x: 280, y: 200},
+                {name: '香川県', x: 240, y: 170},
+                {name: '愛媛県', x: 180, y: 190},
+                {name: '高知県', x: 220, y: 240}
+            ],
+            'kyushu': [
+                {name: '福岡県', x: 200, y: 110},
+                {name: '佐賀県', x: 170, y: 130},
+                {name: '長崎県', x: 120, y: 150},
+                {name: '熊本県', x: 180, y: 190},
+                {name: '大分県', x: 240, y: 150},
+                {name: '宮崎県', x: 220, y: 210},
+                {name: '鹿児島県', x: 180, y: 260}
+            ],
+            'okinawa': [
+                {name: '沖縄県', x: 250, y: 200, isMain: true}
+            ]
+        };
+
         const transportationNames = {
             'train': '🚅 電車・新幹線',
             'plane': '✈️ 飛行機',
@@ -326,24 +483,46 @@
             'ferry': '🚢 フェリー'
         };
 
+        document.getElementById('region').addEventListener('change', function() {
+            const selectedRegion = this.value;
+            const prefectureSelect = document.getElementById('prefecture');
+            
+            prefectureSelect.innerHTML = '<option value="">選択してください</option>';
+            
+            if (selectedRegion && prefectureData[selectedRegion]) {
+                prefectureData[selectedRegion].forEach(pref => {
+                    const option = document.createElement('option');
+                    option.value = pref.name;
+                    option.textContent = pref.name;
+                    prefectureSelect.appendChild(option);
+                });
+                
+                showDetailedMap(selectedRegion);
+            } else {
+                showJapanMap();
+            }
+        });
+
         document.getElementById('travelForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const destination = document.getElementById('destination').value;
+            const region = document.getElementById('region').value;
+            const prefecture = document.getElementById('prefecture').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const budget = document.getElementById('budget').value;
             const transportation = document.getElementById('transportation').value;
             const activities = document.getElementById('activities').value;
 
-            if (!destination || !startDate || !endDate) {
-                alert('目的地、開始日、終了日は必須項目です');
+            if (!region || !prefecture || !startDate || !endDate) {
+                alert('地方、都道府県、開始日、終了日は必須項目です');
                 return;
             }
 
             const plan = {
                 id: ++planCounter,
-                destination: destination,
+                region: region,
+                prefecture: prefecture,
                 startDate: startDate,
                 endDate: endDate,
                 budget: budget,
@@ -355,25 +534,32 @@
             updateMap();
             updateTravelList();
             document.getElementById('travelForm').reset();
+            document.getElementById('prefecture').innerHTML = '<option value="">まず地方を選択してください</option>';
         });
 
         function updateMap() {
-            const mapElement = document.getElementById('japanMap');
-            
             document.querySelectorAll('.travel-marker').forEach(marker => marker.remove());
             document.querySelectorAll('.prefecture').forEach(pref => pref.classList.remove('selected'));
-
+            document.querySelectorAll('.city-point').forEach(point => point.classList.remove('selected'));
+            
+            if (document.getElementById('japanMap').style.display !== 'none') {
+                updateJapanMap();
+            } else {
+                updateDetailedMap();
+            }
+        }
+        
+        function updateJapanMap() {
+            const mapElement = document.getElementById('japanMap');
+            
             travelPlans.forEach((plan, index) => {
-                const prefectureElement = document.querySelector(`[data-region="${plan.destination}"]`);
+                const prefectureElement = document.querySelector(`[data-region="${plan.region}"]`);
                 if (prefectureElement) {
                     prefectureElement.classList.add('selected');
                     
                     const marker = document.createElement('div');
                     marker.className = 'travel-marker';
                     marker.style.backgroundColor = getRandomColor(index);
-                    
-                    const rect = prefectureElement.getBoundingClientRect();
-                    const mapRect = mapElement.getBoundingClientRect();
                     
                     marker.style.left = (prefectureElement.offsetLeft + prefectureElement.offsetWidth / 2 - 40) + 'px';
                     marker.style.top = (prefectureElement.offsetTop - 30 - (index * 25)) + 'px';
@@ -382,7 +568,40 @@
                     const duration = calculateDuration(plan.startDate, plan.endDate);
                     
                     marker.innerHTML = `
-                        <div style="font-size: 10px;">${regionNames[plan.destination]}</div>
+                        <div style="font-size: 10px;">${plan.prefecture}</div>
+                        <div style="font-size: 9px;">${budgetText}</div>
+                        <div style="font-size: 8px;">${duration}日間</div>
+                    `;
+                    
+                    mapElement.appendChild(marker);
+                }
+            });
+        }
+        
+        function updateDetailedMap() {
+            if (!currentRegion) return;
+            
+            const mapElement = document.getElementById('detailedMap');
+            
+            travelPlans.filter(plan => plan.region === currentRegion).forEach((plan, index) => {
+                const prefData = prefectureData[currentRegion].find(pref => pref.name === plan.prefecture);
+                if (prefData) {
+                    const prefPoint = document.querySelector(`[data-prefecture="${plan.prefecture}"]`);
+                    if (prefPoint) {
+                        prefPoint.classList.add('selected');
+                    }
+                    
+                    const marker = document.createElement('div');
+                    marker.className = 'travel-marker';
+                    marker.style.backgroundColor = getRandomColor(index);
+                    marker.style.left = (prefData.x - 40) + 'px';
+                    marker.style.top = (prefData.y - 60 - (index * 25)) + 'px';
+                    
+                    const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
+                    const duration = calculateDuration(plan.startDate, plan.endDate);
+                    
+                    marker.innerHTML = `
+                        <div style="font-size: 10px;">${plan.prefecture}</div>
                         <div style="font-size: 9px;">${budgetText}</div>
                         <div style="font-size: 8px;">${duration}日間</div>
                     `;
@@ -405,7 +624,7 @@
                 const duration = calculateDuration(plan.startDate, plan.endDate);
                 
                 item.innerHTML = `
-                    <div class="travel-item-header">${regionNames[plan.destination]} (${duration}日間)</div>
+                    <div class="travel-item-header">${plan.prefecture} (${regionNames[plan.region]}) (${duration}日間)</div>
                     <div class="travel-item-details">
                         📅 ${plan.startDate} ～ ${plan.endDate}<br>
                         💰 ${budgetText}<br>
@@ -440,10 +659,62 @@
             }
         }
 
+        function showJapanMap() {
+            document.getElementById('japanMap').style.display = 'block';
+            document.getElementById('detailedMap').classList.remove('active');
+            currentRegion = null;
+            updateMap();
+        }
+        
+        function showDetailedMap(region) {
+            currentRegion = region;
+            document.getElementById('japanMap').style.display = 'none';
+            document.getElementById('detailedMap').classList.add('active');
+            
+            const regionTitle = document.getElementById('regionTitle');
+            regionTitle.textContent = regionNames[region] + ' 詳細地図';
+            
+            const prefecturePointsContainer = document.getElementById('cityPoints');
+            prefecturePointsContainer.innerHTML = '';
+            
+            prefectureData[region].forEach(pref => {
+                const point = document.createElement('div');
+                point.className = 'city-point';
+                point.setAttribute('data-prefecture', pref.name);
+                point.style.left = pref.x + 'px';
+                point.style.top = pref.y + 'px';
+                
+                const label = document.createElement('div');
+                label.className = 'city-label';
+                label.textContent = pref.name;
+                label.style.left = pref.x + 'px';
+                label.style.top = pref.y + 'px';
+                
+                point.addEventListener('click', function() {
+                    document.getElementById('prefecture').value = pref.name;
+                });
+                
+                prefecturePointsContainer.appendChild(point);
+                prefecturePointsContainer.appendChild(label);
+            });
+            
+            updateMap();
+        }
+        
         document.querySelectorAll('.prefecture').forEach(prefecture => {
             prefecture.addEventListener('click', function() {
                 const region = this.getAttribute('data-region');
-                document.getElementById('destination').value = region;
+                document.getElementById('region').value = region;
+                showDetailedMap(region);
+                
+                const prefectureSelect = document.getElementById('prefecture');
+                prefectureSelect.innerHTML = '<option value="">選択してください</option>';
+                prefectureData[region].forEach(pref => {
+                    const option = document.createElement('option');
+                    option.value = pref.name;
+                    option.textContent = pref.name;
+                    prefectureSelect.appendChild(option);
+                });
             });
         });
     </script>
