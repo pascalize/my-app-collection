@@ -213,6 +213,65 @@
             background: #0056b3;
         }
 
+        .route-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            z-index: 1;
+            transform-origin: left center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .route-line::before {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #28a745;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .clickable-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            z-index: 0;
+        }
+
+        .location-marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff6b35;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .order-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
         .travel-marker {
             position: absolute;
             background: #ff6b6b;
@@ -326,6 +385,16 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="specificLocation">具体的な場所</label>
+                        <input type="text" id="specificLocation" placeholder="地図上でクリックするか、直接入力">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="order">訪問順序</label>
+                        <input type="number" id="order" min="1" placeholder="1, 2, 3...">
+                    </div>
+
+                    <div class="form-group">
                         <label for="startDate">開始日</label>
                         <input type="date" id="startDate" required>
                     </div>
@@ -380,11 +449,15 @@
                 </div>
                 
                 <div class="detailed-map" id="detailedMap">
+                    <div class="clickable-area" id="clickableArea"></div>
                     <div class="map-controls">
                         <button onclick="showJapanMap()">← 日本地図に戻る</button>
+                        <button onclick="toggleRoutes()" id="routeToggle">経路表示</button>
                     </div>
                     <div id="regionTitle" style="text-align: center; font-weight: bold; padding: 10px; font-size: 18px;"></div>
                     <div id="cityPoints"></div>
+                    <div id="routeLines"></div>
+                    <div id="locationMarkers"></div>
                 </div>
             </div>
         </div>
@@ -394,6 +467,8 @@
         let travelPlans = [];
         let planCounter = 0;
         let currentRegion = null;
+        let showRoutes = true;
+        let clickedLocation = null;
 
         const regionNames = {
             'hokkaido': '北海道',
@@ -508,6 +583,8 @@
             
             const region = document.getElementById('region').value;
             const prefecture = document.getElementById('prefecture').value;
+            const specificLocation = document.getElementById('specificLocation').value;
+            const order = parseInt(document.getElementById('order').value) || (travelPlans.length + 1);
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const budget = document.getElementById('budget').value;
@@ -523,29 +600,41 @@
                 id: ++planCounter,
                 region: region,
                 prefecture: prefecture,
+                specificLocation: specificLocation,
+                order: order,
                 startDate: startDate,
                 endDate: endDate,
                 budget: budget,
                 transportation: transportation,
-                activities: activities
+                activities: activities,
+                customLocation: clickedLocation ? { x: clickedLocation.x, y: clickedLocation.y } : null
             };
+            
+            clickedLocation = null;
 
             travelPlans.push(plan);
             updateMap();
             updateTravelList();
             document.getElementById('travelForm').reset();
             document.getElementById('prefecture').innerHTML = '<option value="">まず地方を選択してください</option>';
+            document.getElementById('specificLocation').value = '';
         });
 
         function updateMap() {
             document.querySelectorAll('.travel-marker').forEach(marker => marker.remove());
             document.querySelectorAll('.prefecture').forEach(pref => pref.classList.remove('selected'));
             document.querySelectorAll('.city-point').forEach(point => point.classList.remove('selected'));
+            document.querySelectorAll('.route-line').forEach(line => line.remove());
+            document.querySelectorAll('.location-marker').forEach(marker => marker.remove());
             
             if (document.getElementById('japanMap').style.display !== 'none') {
                 updateJapanMap();
             } else {
                 updateDetailedMap();
+                if (showRoutes) {
+                    drawRoutes();
+                }
+                drawLocationMarkers();
             }
         }
         
@@ -594,14 +683,25 @@
                     const marker = document.createElement('div');
                     marker.className = 'travel-marker';
                     marker.style.backgroundColor = getRandomColor(index);
-                    marker.style.left = (prefData.x - 40) + 'px';
-                    marker.style.top = (prefData.y - 60 - (index * 25)) + 'px';
+                    
+                    let markerX = prefData.x;
+                    let markerY = prefData.y;
+                    
+                    if (plan.customLocation) {
+                        markerX = plan.customLocation.x;
+                        markerY = plan.customLocation.y;
+                    }
+                    
+                    marker.style.left = (markerX - 40) + 'px';
+                    marker.style.top = (markerY - 60 - (index * 25)) + 'px';
                     
                     const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
                     const duration = calculateDuration(plan.startDate, plan.endDate);
+                    const locationText = plan.specificLocation ? plan.specificLocation : plan.prefecture;
                     
                     marker.innerHTML = `
-                        <div style="font-size: 10px;">${plan.prefecture}</div>
+                        <div class="order-badge">${plan.order}</div>
+                        <div style="font-size: 10px;">${locationText}</div>
                         <div style="font-size: 9px;">${budgetText}</div>
                         <div style="font-size: 8px;">${duration}日間</div>
                     `;
@@ -622,9 +722,10 @@
                 const budgetText = plan.budget ? `¥${parseInt(plan.budget).toLocaleString()}` : '予算未設定';
                 const transportText = plan.transportation ? transportationNames[plan.transportation] : '交通手段未設定';
                 const duration = calculateDuration(plan.startDate, plan.endDate);
+                const locationText = plan.specificLocation ? `${plan.specificLocation} (${plan.prefecture})` : plan.prefecture;
                 
                 item.innerHTML = `
-                    <div class="travel-item-header">${plan.prefecture} (${regionNames[plan.region]}) (${duration}日間)</div>
+                    <div class="travel-item-header">${plan.order}. ${locationText} (${regionNames[plan.region]}) (${duration}日間)</div>
                     <div class="travel-item-details">
                         📅 ${plan.startDate} ～ ${plan.endDate}<br>
                         💰 ${budgetText}<br>
@@ -699,6 +800,104 @@
             });
             
             updateMap();
+            setupClickableArea();
+        }
+        
+        function drawRoutes() {
+            if (!currentRegion) return;
+            
+            const routeLinesContainer = document.getElementById('routeLines');
+            routeLinesContainer.innerHTML = '';
+            
+            const regionPlans = travelPlans.filter(plan => plan.region === currentRegion).sort((a, b) => a.order - b.order);
+            
+            for (let i = 0; i < regionPlans.length - 1; i++) {
+                const currentPlan = regionPlans[i];
+                const nextPlan = regionPlans[i + 1];
+                
+                let currentX, currentY, nextX, nextY;
+                
+                if (currentPlan.customLocation) {
+                    currentX = currentPlan.customLocation.x;
+                    currentY = currentPlan.customLocation.y;
+                } else {
+                    const currentPrefData = prefectureData[currentRegion].find(pref => pref.name === currentPlan.prefecture);
+                    currentX = currentPrefData.x;
+                    currentY = currentPrefData.y;
+                }
+                
+                if (nextPlan.customLocation) {
+                    nextX = nextPlan.customLocation.x;
+                    nextY = nextPlan.customLocation.y;
+                } else {
+                    const nextPrefData = prefectureData[currentRegion].find(pref => pref.name === nextPlan.prefecture);
+                    nextX = nextPrefData.x;
+                    nextY = nextPrefData.y;
+                }
+                
+                const line = document.createElement('div');
+                line.className = 'route-line';
+                
+                const deltaX = nextX - currentX;
+                const deltaY = nextY - currentY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+                
+                line.style.left = currentX + 'px';
+                line.style.top = currentY + 'px';
+                line.style.width = distance + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                
+                line.title = `${currentPlan.specificLocation || currentPlan.prefecture} → ${nextPlan.specificLocation || nextPlan.prefecture}`;
+                
+                routeLinesContainer.appendChild(line);
+            }
+        }
+        
+        function drawLocationMarkers() {
+            if (!currentRegion) return;
+            
+            const markersContainer = document.getElementById('locationMarkers');
+            markersContainer.innerHTML = '';
+            
+            const regionPlans = travelPlans.filter(plan => plan.region === currentRegion);
+            
+            regionPlans.forEach(plan => {
+                if (plan.customLocation) {
+                    const marker = document.createElement('div');
+                    marker.className = 'location-marker';
+                    marker.style.left = plan.customLocation.x + 'px';
+                    marker.style.top = plan.customLocation.y + 'px';
+                    marker.title = plan.specificLocation || '指定場所';
+                    markersContainer.appendChild(marker);
+                }
+            });
+        }
+        
+        function toggleRoutes() {
+            showRoutes = !showRoutes;
+            const button = document.getElementById('routeToggle');
+            button.textContent = showRoutes ? '経路非表示' : '経路表示';
+            updateMap();
+        }
+        
+        function setupClickableArea() {
+            const clickableArea = document.getElementById('clickableArea');
+            if (clickableArea) {
+                clickableArea.addEventListener('click', function(e) {
+                    if (!currentRegion) return;
+                    
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    clickedLocation = { x: x, y: y };
+                    
+                    const specificLocationInput = document.getElementById('specificLocation');
+                    specificLocationInput.value = `座標: (${Math.round(x)}, ${Math.round(y)})`;
+                    specificLocationInput.focus();
+                });
+            }
         }
         
         document.querySelectorAll('.prefecture').forEach(prefecture => {
