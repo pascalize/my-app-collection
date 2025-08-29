@@ -311,27 +311,51 @@
         }
 
         .calendar-day.today {
-            background: #2196F3;
-            color: white;
+            border: 3px solid #2196F3;
             font-weight: bold;
         }
 
         .calendar-day.has-workout {
-            background: #4CAF50;
-            color: white;
+            color: #333;
             font-weight: bold;
         }
 
-        .calendar-day.has-workout::after {
-            content: '●';
+        .calendar-day .exercise-indicator {
             position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 8px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            border-radius: 5px;
         }
 
-        .calendar-day.today.has-workout {
-            background: linear-gradient(135deg, #2196F3 50%, #4CAF50 50%);
+        .calendar-day .cardio-indicator {
+            background: linear-gradient(to right, #2196F3 50%, transparent 50%);
+        }
+
+        .calendar-day .strength-indicator {
+            background: linear-gradient(to bottom, #f44336 50%, transparent 50%);
+        }
+
+        .calendar-day .other-indicator {
+            background: linear-gradient(135deg, transparent 50%, #4CAF50 50%);
+        }
+
+        .calendar-day .cardio-strength {
+            background: linear-gradient(45deg, #2196F3 50%, #f44336 50%);
+        }
+
+        .calendar-day .cardio-other {
+            background: linear-gradient(-45deg, #2196F3 50%, #4CAF50 50%);
+        }
+
+        .calendar-day .strength-other {
+            background: linear-gradient(135deg, #f44336 50%, #4CAF50 50%);
+        }
+
+        .calendar-day .all-types {
+            background: conic-gradient(#2196F3 0deg 120deg, #f44336 120deg 240deg, #4CAF50 240deg 360deg);
         }
 
         .calendar-legend {
@@ -352,6 +376,14 @@
             width: 12px;
             height: 12px;
             border-radius: 2px;
+        }
+
+        .legend-border {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #2196F3;
+            border-radius: 2px;
+            background: white;
         }
 
         @media (max-width: 480px) {
@@ -414,7 +446,7 @@
                 <div class="exercise-category">
                     <div class="category-title">💪 筋力トレーニング</div>
                     <div class="exercise-buttons">
-                        <div class="exercise-btn" data-exercise="ブルガリアンスクワット" data-type="strength">ブルガリアンスクワット</div>
+                        <div class="exercise-btn" data-exercise="BSQ" data-type="strength">BSQ</div>
                         <div class="exercise-btn" data-exercise="デッドリフト" data-type="strength">デッドリフト</div>
                         <div class="exercise-btn" data-exercise="腕立て伏せ" data-type="strength">腕立て伏せ</div>
                         <div class="exercise-btn" data-exercise="腹筋ローラー" data-type="strength">腹筋ローラー</div>
@@ -489,12 +521,20 @@
                 <div id="calendar-days" class="calendar-grid"></div>
                 <div class="calendar-legend">
                     <div class="legend-item">
-                        <div class="legend-color" style="background: #2196F3;"></div>
+                        <div class="legend-border"></div>
                         <span>今日</span>
                     </div>
                     <div class="legend-item">
+                        <div class="legend-color" style="background: #2196F3;"></div>
+                        <span>有酸素</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f44336;"></div>
+                        <span>筋トレ</span>
+                    </div>
+                    <div class="legend-item">
                         <div class="legend-color" style="background: #4CAF50;"></div>
-                        <span>運動した日</span>
+                        <span>ストレッチ</span>
                     </div>
                 </div>
             </div>
@@ -576,6 +616,11 @@
             localStorage.setItem('workoutLog', JSON.stringify(workoutLog));
             
             displayLog();
+            
+            // Update calendar if it's visible
+            if (document.getElementById('calendar-tab').classList.contains('active')) {
+                renderCalendar();
+            }
         }
 
         function displayLog() {
@@ -714,12 +759,28 @@
             calendarDays.innerHTML = '';
             
             const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-            const workoutDates = new Set();
+            const workoutData = {};
             
             workoutLog.forEach(entry => {
                 const date = new Date(entry.timestamp);
                 const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-                workoutDates.add(dateString);
+                
+                if (!workoutData[dateString]) {
+                    workoutData[dateString] = new Set();
+                }
+                
+                // Classify exercise types
+                const cardioExercises = ['エアロバイク', 'ランニング', '散歩'];
+                const strengthExercises = ['BSQ', 'デッドリフト', '腕立て伏せ', '腹筋ローラー'];
+                const otherExercises = ['ストレッチ'];
+                
+                if (cardioExercises.includes(entry.exercise)) {
+                    workoutData[dateString].add('cardio');
+                } else if (strengthExercises.includes(entry.exercise)) {
+                    workoutData[dateString].add('strength');
+                } else if (otherExercises.includes(entry.exercise)) {
+                    workoutData[dateString].add('other');
+                }
             });
             
             const today = new Date();
@@ -743,8 +804,23 @@
                     dayElement.classList.add('today');
                 }
                 
-                if (workoutDates.has(dateString)) {
+                if (workoutData[dateString]) {
                     dayElement.classList.add('has-workout');
+                    
+                    const exerciseTypes = Array.from(workoutData[dateString]);
+                    const indicator = document.createElement('div');
+                    indicator.className = 'exercise-indicator';
+                    
+                    if (exerciseTypes.length === 1) {
+                        indicator.classList.add(exerciseTypes[0] + '-indicator');
+                    } else if (exerciseTypes.length === 2) {
+                        const sortedTypes = exerciseTypes.sort();
+                        indicator.classList.add(sortedTypes.join('-'));
+                    } else if (exerciseTypes.length === 3) {
+                        indicator.classList.add('all-types');
+                    }
+                    
+                    dayElement.appendChild(indicator);
                 }
                 
                 calendarDays.appendChild(dayElement);
