@@ -596,28 +596,42 @@
             
             // Find the most recent entry for this exercise
             const previousEntries = workoutLog.filter(entry => entry.exercise === exerciseName);
-            if (previousEntries.length === 0) return;
-            
-            const lastEntry = previousEntries[previousEntries.length - 1];
             
             if (exerciseType === 'cardio' || exerciseType === 'other') {
-                // Extract time from details like "運動時間: 30分"
-                const timeMatch = lastEntry.details.match(/運動時間:\s*(\d+)分/);
-                if (timeMatch) {
-                    const inputId = exerciseType === 'cardio' ? 'cardio-time' : 'other-time';
-                    document.getElementById(inputId).value = timeMatch[1];
-                }
-            } else if (exerciseType === 'strength') {
-                // Extract weight and reps from details like "重量: 10kg, 回数: 20回" or "回数: 20回"
-                const weightMatch = lastEntry.details.match(/重量:\s*([\d.]+)kg/);
-                const repsMatch = lastEntry.details.match(/回数:\s*(\d+)回/);
+                let timeValue = '20'; // Default value
                 
-                if (weightMatch) {
-                    document.getElementById('strength-weight').value = weightMatch[1];
+                if (previousEntries.length > 0) {
+                    const lastEntry = previousEntries[previousEntries.length - 1];
+                    // Extract time from details like "運動時間: 30分"
+                    const timeMatch = lastEntry.details.match(/運動時間:\s*(\d+)分/);
+                    if (timeMatch) {
+                        timeValue = timeMatch[1];
+                    }
                 }
-                if (repsMatch) {
-                    document.getElementById('strength-reps').value = repsMatch[1];
+                
+                const inputId = exerciseType === 'cardio' ? 'cardio-time' : 'other-time';
+                document.getElementById(inputId).value = timeValue;
+                
+            } else if (exerciseType === 'strength') {
+                let weightValue = '15'; // Default value
+                let repsValue = '10';   // Default value
+                
+                if (previousEntries.length > 0) {
+                    const lastEntry = previousEntries[previousEntries.length - 1];
+                    // Extract weight and reps from details like "重量: 10kg, 回数: 20回" or "回数: 20回"
+                    const weightMatch = lastEntry.details.match(/重量:\s*([\d.]+)kg/);
+                    const repsMatch = lastEntry.details.match(/回数:\s*(\d+)回/);
+                    
+                    if (weightMatch) {
+                        weightValue = weightMatch[1];
+                    }
+                    if (repsMatch) {
+                        repsValue = repsMatch[1];
+                    }
                 }
+                
+                document.getElementById('strength-weight').value = weightValue;
+                document.getElementById('strength-reps').value = repsValue;
             }
         }
 
