@@ -163,6 +163,29 @@
             margin-bottom: 10px;
             border-radius: 8px;
             border-left: 4px solid #2196F3;
+            position: relative;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #d32f2f;
         }
 
         .log-entry .date {
@@ -343,19 +366,19 @@
         }
 
         .calendar-day .cardio-strength {
-            background: linear-gradient(45deg, #2196F3 50%, #f44336 50%);
+            background: linear-gradient(45deg, rgba(33, 150, 243, 0.7) 50%, rgba(244, 67, 54, 0.7) 50%);
         }
 
         .calendar-day .cardio-other {
-            background: linear-gradient(-45deg, #2196F3 50%, #4CAF50 50%);
+            background: linear-gradient(-45deg, rgba(33, 150, 243, 0.7) 50%, rgba(76, 175, 80, 0.7) 50%);
         }
 
         .calendar-day .strength-other {
-            background: linear-gradient(135deg, #f44336 50%, #4CAF50 50%);
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.7) 50%, rgba(76, 175, 80, 0.7) 50%);
         }
 
         .calendar-day .all-types {
-            background: conic-gradient(#2196F3 0deg 120deg, #f44336 120deg 240deg, #4CAF50 240deg 360deg);
+            background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 120deg, rgba(244, 67, 54, 0.7) 120deg 240deg, rgba(76, 175, 80, 0.7) 240deg 360deg);
         }
 
         .calendar-legend {
@@ -633,13 +656,21 @@
             }
             
             const today = new Date().toDateString();
-            const todayLogs = workoutLog.filter(entry => {
+            const todayLogs = workoutLog.filter((entry, index) => {
                 const entryDate = new Date(entry.timestamp).toDateString();
                 return entryDate === today;
+            }).map((entry, filteredIndex) => {
+                const originalIndex = workoutLog.findIndex(logEntry => 
+                    logEntry.timestamp === entry.timestamp && 
+                    logEntry.exercise === entry.exercise && 
+                    logEntry.details === entry.details
+                );
+                return { ...entry, originalIndex };
             });
             
-            logContainer.innerHTML = todayLogs.map(entry => `
-                <div class="log-entry">
+            logContainer.innerHTML = todayLogs.map((entry, index) => `
+                <div class="log-entry" data-index="${entry.originalIndex}">
+                    <button class="delete-btn" onclick="deleteEntry(${entry.originalIndex})" title="削除">×</button>
                     <div class="date">${entry.time}</div>
                     <div class="exercise-name">${entry.exercise}</div>
                     <div class="details">${entry.details}</div>
@@ -842,6 +873,20 @@
             
             nextBtn.disabled = currentYear > today.getFullYear() || 
                              (currentYear === today.getFullYear() && currentMonth >= today.getMonth());
+        }
+
+        function deleteEntry(index) {
+            if (confirm('この記録を削除しますか？')) {
+                let workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+                workoutLog.splice(index, 1);
+                localStorage.setItem('workoutLog', JSON.stringify(workoutLog));
+                displayLog();
+                
+                // Update calendar if it's visible
+                if (document.getElementById('calendar-tab').classList.contains('active')) {
+                    renderCalendar();
+                }
+            }
         }
 
         window.addEventListener('load', function() {
