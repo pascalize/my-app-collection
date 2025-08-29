@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運動記録アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .exercise-selection {
+            margin-bottom: 30px;
+        }
+
+        .exercise-category {
+            margin-bottom: 20px;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .exercise-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .exercise-btn {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .exercise-btn:hover {
+            background: #e9ecef;
+            border-color: #2196F3;
+        }
+
+        .exercise-btn.selected {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+
+        .input-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .input-section.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .input-group input:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+
+        .record-btn {
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .record-btn:hover {
+            background: #45a049;
+        }
+
+        .record-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .workout-log {
+            margin-top: 30px;
+        }
+
+        .log-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .log-entry {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .log-entry .date {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .log-entry .exercise-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .log-entry .details {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .clear-log-btn {
+            width: 100%;
+            padding: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .clear-log-btn:hover {
+            background: #d32f2f;
+        }
+
+        @media (max-width: 480px) {
+            .exercise-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                margin: 0 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💪 運動記録アプリ</h1>
+            <p>今日も頑張りましょう！</p>
+        </div>
+        
+        <div class="content">
+            <div class="exercise-selection">
+                <div class="exercise-category">
+                    <div class="category-title">🏃‍♂️ 有酸素運動</div>
+                    <div class="exercise-buttons">
+                        <div class="exercise-btn" data-exercise="エアロバイク" data-type="cardio">エアロバイク</div>
+                        <div class="exercise-btn" data-exercise="ランニング" data-type="cardio">ランニング</div>
+                        <div class="exercise-btn" data-exercise="ウォーキング" data-type="cardio">ウォーキング</div>
+                        <div class="exercise-btn" data-exercise="水泳" data-type="cardio">水泳</div>
+                    </div>
+                </div>
+                
+                <div class="exercise-category">
+                    <div class="category-title">💪 筋力トレーニング</div>
+                    <div class="exercise-buttons">
+                        <div class="exercise-btn" data-exercise="スクワット" data-type="strength">スクワット</div>
+                        <div class="exercise-btn" data-exercise="腕立て伏せ" data-type="strength">腕立て伏せ</div>
+                        <div class="exercise-btn" data-exercise="腹筋" data-type="strength">腹筋</div>
+                        <div class="exercise-btn" data-exercise="ダンベルカール" data-type="strength">ダンベルカール</div>
+                        <div class="exercise-btn" data-exercise="ベンチプレス" data-type="strength">ベンチプレス</div>
+                    </div>
+                </div>
+                
+                <div class="exercise-category">
+                    <div class="category-title">🧘‍♀️ その他</div>
+                    <div class="exercise-buttons">
+                        <div class="exercise-btn" data-exercise="ストレッチ" data-type="other">ストレッチ</div>
+                        <div class="exercise-btn" data-exercise="ヨガ" data-type="other">ヨガ</div>
+                        <div class="exercise-btn" data-exercise="体幹トレーニング" data-type="other">体幹トレーニング</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cardio-input" class="input-section">
+                <h3>有酸素運動の記録</h3>
+                <div class="input-group">
+                    <label for="cardio-time">運動時間（分）</label>
+                    <input type="number" id="cardio-time" min="1" placeholder="例: 30">
+                </div>
+                <button class="record-btn" onclick="recordCardio()">記録する</button>
+            </div>
+
+            <div id="strength-input" class="input-section">
+                <h3>筋力トレーニングの記録</h3>
+                <div class="input-group">
+                    <label for="strength-weight">重量（kg）</label>
+                    <input type="number" id="strength-weight" min="0" step="0.5" placeholder="例: 10">
+                </div>
+                <div class="input-group">
+                    <label for="strength-reps">回数</label>
+                    <input type="number" id="strength-reps" min="1" placeholder="例: 20">
+                </div>
+                <button class="record-btn" onclick="recordStrength()">記録する</button>
+            </div>
+
+            <div id="other-input" class="input-section">
+                <h3>その他の運動の記録</h3>
+                <div class="input-group">
+                    <label for="other-time">運動時間（分）</label>
+                    <input type="number" id="other-time" min="1" placeholder="例: 15">
+                </div>
+                <button class="record-btn" onclick="recordOther()">記録する</button>
+            </div>
+
+            <div class="workout-log">
+                <div class="log-title">📝 今日の運動記録</div>
+                <div id="log-container">
+                    <p style="color: #666; text-align: center; padding: 20px;">まだ記録がありません</p>
+                </div>
+                <button class="clear-log-btn" onclick="clearLog()">記録をクリア</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentExercise = '';
+        let currentType = '';
+
+        function selectExercise(exerciseName, exerciseType) {
+            currentExercise = exerciseName;
+            currentType = exerciseType;
+            
+            document.querySelectorAll('.exercise-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            event.target.classList.add('selected');
+            
+            document.querySelectorAll('.input-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById(exerciseType + '-input').classList.add('active');
+        }
+
+        function recordCardio() {
+            const time = document.getElementById('cardio-time').value;
+            if (!time || !currentExercise) return;
+            
+            addToLog(currentExercise, `運動時間: ${time}分`);
+            document.getElementById('cardio-time').value = '';
+            resetSelection();
+        }
+
+        function recordStrength() {
+            const weight = document.getElementById('strength-weight').value;
+            const reps = document.getElementById('strength-reps').value;
+            if (!reps || !currentExercise) return;
+            
+            let details = `回数: ${reps}回`;
+            if (weight) {
+                details = `重量: ${weight}kg, ${details}`;
+            }
+            
+            addToLog(currentExercise, details);
+            document.getElementById('strength-weight').value = '';
+            document.getElementById('strength-reps').value = '';
+            resetSelection();
+        }
+
+        function recordOther() {
+            const time = document.getElementById('other-time').value;
+            if (!time || !currentExercise) return;
+            
+            addToLog(currentExercise, `運動時間: ${time}分`);
+            document.getElementById('other-time').value = '';
+            resetSelection();
+        }
+
+        function addToLog(exerciseName, details) {
+            const now = new Date();
+            const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                             now.getMinutes().toString().padStart(2, '0');
+            
+            const logEntry = {
+                exercise: exerciseName,
+                details: details,
+                time: timeString,
+                timestamp: now.getTime()
+            };
+            
+            let workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+            workoutLog.push(logEntry);
+            localStorage.setItem('workoutLog', JSON.stringify(workoutLog));
+            
+            displayLog();
+        }
+
+        function displayLog() {
+            const logContainer = document.getElementById('log-container');
+            const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+            
+            if (workoutLog.length === 0) {
+                logContainer.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">まだ記録がありません</p>';
+                return;
+            }
+            
+            const today = new Date().toDateString();
+            const todayLogs = workoutLog.filter(entry => {
+                const entryDate = new Date(entry.timestamp).toDateString();
+                return entryDate === today;
+            });
+            
+            logContainer.innerHTML = todayLogs.map(entry => `
+                <div class="log-entry">
+                    <div class="date">${entry.time}</div>
+                    <div class="exercise-name">${entry.exercise}</div>
+                    <div class="details">${entry.details}</div>
+                </div>
+            `).join('');
+            
+            if (todayLogs.length === 0) {
+                logContainer.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">今日はまだ記録がありません</p>';
+            }
+        }
+
+        function clearLog() {
+            if (confirm('今日の記録をすべて削除しますか？')) {
+                const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
+                const today = new Date().toDateString();
+                const filteredLog = workoutLog.filter(entry => {
+                    const entryDate = new Date(entry.timestamp).toDateString();
+                    return entryDate !== today;
+                });
+                localStorage.setItem('workoutLog', JSON.stringify(filteredLog));
+                displayLog();
+            }
+        }
+
+        function resetSelection() {
+            currentExercise = '';
+            currentType = '';
+            document.querySelectorAll('.exercise-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelectorAll('.input-section').forEach(section => {
+                section.classList.remove('active');
+            });
+        }
+
+        document.querySelectorAll('.exercise-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const exercise = this.dataset.exercise;
+                const type = this.dataset.type;
+                selectExercise(exercise, type);
+            });
+        });
+
+        window.addEventListener('load', function() {
+            displayLog();
+        });
+    </script>
+</body>
+</html>
