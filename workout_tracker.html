@@ -742,6 +742,7 @@
                         <div class="category-title">🧘‍♀️ その他</div>
                         <div class="exercise-buttons">
                             <div class="exercise-btn" data-exercise="ストレッチ" data-type="other">ストレッチ</div>
+                            <div class="exercise-btn" data-exercise="リバウンドジャンプ" data-type="other">リバウンドジャンプ</div>
                         </div>
                     </div>
                 </div>
@@ -1119,7 +1120,7 @@
             }
             
             const minDate = new Date();
-            minDate.setMonth(minDate.getMonth() - 3);
+            minDate.setMonth(minDate.getMonth() - 6);
             
             if (currentYear < minDate.getFullYear() || 
                 (currentYear === minDate.getFullYear() && currentMonth < minDate.getMonth())) {
@@ -1183,7 +1184,7 @@
                 
                 const cardioExercises = ['エアロバイク', 'ランニング', '散歩'];
                 const strengthExercises = ['BSQ', 'デッドリフト', '腕立て伏せ', '腹筋ローラー'];
-                const otherExercises = ['ストレッチ'];
+                const otherExercises = ['ストレッチ', 'リバウンドジャンプ'];
                 
                 if (cardioExercises.includes(entry.exercise)) {
                     workoutData[dateString].add('cardio');
@@ -1243,7 +1244,7 @@
         function updateNavigationButtons() {
             const today = new Date();
             const minDate = new Date();
-            minDate.setMonth(minDate.getMonth() - 3);
+            minDate.setMonth(minDate.getMonth() - 6);
             
             const prevBtn = document.getElementById('prev-btn');
             const nextBtn = document.getElementById('next-btn');
@@ -1362,7 +1363,7 @@
 
         function updateProgress() {
             const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-            const exercises = ['BSQ', 'デッドリフト', '腕立て伏せ', '腹筋ローラー', 'エアロバイク', 'ランニング', '散歩', 'ストレッチ'];
+            const exercises = ['BSQ', 'デッドリフト', '腕立て伏せ', '腹筋ローラー', 'エアロバイク', 'ランニング', '散歩', 'ストレッチ', 'リバウンドジャンプ'];
             
             const progressData = exercises.map(exercise => {
                 const entries = workoutLog.filter(entry => entry.exercise === exercise);
