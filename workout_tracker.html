@@ -742,7 +742,8 @@
                         <div class="category-title">🧘‍♀️ その他</div>
                         <div class="exercise-buttons">
                             <div class="exercise-btn" data-exercise="ストレッチ" data-type="other">ストレッチ</div>
-                            <div class="exercise-btn" data-exercise="リバウンドジャンプ" data-type="other">リバウンドジャンプ</div>
+                            <div class="exercise-btn" data-exercise="SSC下半身" data-type="other">SSC下半身</div>
+                            <div class="exercise-btn" data-exercise="SSC上半身" data-type="other">SSC上半身</div>
                         </div>
                     </div>
                 </div>
@@ -1184,7 +1185,7 @@
                 
                 const cardioExercises = ['エアロバイク', 'ランニング', '散歩'];
                 const strengthExercises = ['BSQ', 'デッドリフト', 'ダンベルプレス', '腹筋ローラー'];
-                const otherExercises = ['ストレッチ', 'リバウンドジャンプ'];
+                const otherExercises = ['ストレッチ', 'SSC下半身', 'SSC上半身'];
                 
                 if (cardioExercises.includes(entry.exercise)) {
                     workoutData[dateString].add('cardio');
@@ -1363,7 +1364,7 @@
 
         function updateProgress() {
             const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-            const exercises = ['BSQ', 'デッドリフト', 'ダンベルプレス', '腹筋ローラー', 'エアロバイク', 'ランニング', '散歩', 'ストレッチ', 'リバウンドジャンプ'];
+            const exercises = ['BSQ', 'デッドリフト', 'ダンベルプレス', '腹筋ローラー', 'エアロバイク', 'ランニング', '散歩', 'ストレッチ', 'SSC下半身', 'SSC上半身'];
             
             const progressData = exercises.map(exercise => {
                 const entries = workoutLog.filter(entry => entry.exercise === exercise);
