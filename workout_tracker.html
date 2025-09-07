@@ -449,6 +449,10 @@
             background: rgba(244, 67, 54, 0.7);
         }
 
+        .calendar-day .ssc-indicator {
+            background: rgba(255, 193, 7, 0.7);
+        }
+
         .calendar-day .other-indicator {
             background: rgba(76, 175, 80, 0.7);
         }
@@ -457,16 +461,28 @@
             background: linear-gradient(45deg, rgba(33, 150, 243, 0.7) 50%, rgba(244, 67, 54, 0.7) 50%);
         }
 
+        .calendar-day .cardio-ssc {
+            background: linear-gradient(-45deg, rgba(33, 150, 243, 0.7) 50%, rgba(255, 193, 7, 0.7) 50%);
+        }
+
         .calendar-day .cardio-other {
             background: linear-gradient(-45deg, rgba(33, 150, 243, 0.7) 50%, rgba(76, 175, 80, 0.7) 50%);
+        }
+
+        .calendar-day .strength-ssc {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.7) 50%, rgba(255, 193, 7, 0.7) 50%);
         }
 
         .calendar-day .strength-other {
             background: linear-gradient(135deg, rgba(244, 67, 54, 0.7) 50%, rgba(76, 175, 80, 0.7) 50%);
         }
 
+        .calendar-day .ssc-other {
+            background: linear-gradient(45deg, rgba(255, 193, 7, 0.7) 50%, rgba(76, 175, 80, 0.7) 50%);
+        }
+
         .calendar-day .all-types {
-            background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 120deg, rgba(244, 67, 54, 0.7) 120deg 240deg, rgba(76, 175, 80, 0.7) 240deg 360deg);
+            background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 90deg, rgba(244, 67, 54, 0.7) 90deg 180deg, rgba(255, 193, 7, 0.7) 180deg 270deg, rgba(76, 175, 80, 0.7) 270deg 360deg);
         }
 
         .calendar-legend {
@@ -739,11 +755,17 @@
                     </div>
                     
                     <div class="exercise-category">
+                        <div class="category-title">⚡ SSC</div>
+                        <div class="exercise-buttons">
+                            <div class="exercise-btn" data-exercise="SSC上半身" data-type="ssc">SSC上半身</div>
+                            <div class="exercise-btn" data-exercise="SSC下半身" data-type="ssc">SSC下半身</div>
+                        </div>
+                    </div>
+                    
+                    <div class="exercise-category">
                         <div class="category-title">🧘‍♀️ その他</div>
                         <div class="exercise-buttons">
                             <div class="exercise-btn" data-exercise="ストレッチ" data-type="other">ストレッチ</div>
-                            <div class="exercise-btn" data-exercise="SSC下半身" data-type="other">SSC下半身</div>
-                            <div class="exercise-btn" data-exercise="SSC上半身" data-type="other">SSC上半身</div>
                         </div>
                     </div>
                 </div>
@@ -768,6 +790,15 @@
                         <input type="number" id="strength-reps" min="1">
                     </div>
                     <button class="record-btn" onclick="recordStrength()">記録する</button>
+                </div>
+
+                <div id="ssc-input" class="input-section">
+                    <h3>SSCの記録</h3>
+                    <div class="input-group">
+                        <label for="ssc-time">運動時間（分）</label>
+                        <input type="number" id="ssc-time" min="1">
+                    </div>
+                    <button class="record-btn" onclick="recordSSC()">記録する</button>
                 </div>
 
                 <div id="other-input" class="input-section">
@@ -819,8 +850,12 @@
                             <span>筋トレ</span>
                         </div>
                         <div class="legend-item">
+                            <div class="legend-color" style="background: #FFC107;"></div>
+                            <span>SSC</span>
+                        </div>
+                        <div class="legend-item">
                             <div class="legend-color" style="background: #4CAF50;"></div>
-                            <span>ストレッチ</span>
+                            <span>その他</span>
                         </div>
                     </div>
                 </div>
@@ -946,7 +981,7 @@
             const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
             const previousEntries = workoutLog.filter(entry => entry.exercise === exerciseName);
             
-            if (exerciseType === 'cardio' || exerciseType === 'other') {
+            if (exerciseType === 'cardio' || exerciseType === 'other' || exerciseType === 'ssc') {
                 let timeValue = '20';
                 
                 if (previousEntries.length > 0) {
@@ -957,7 +992,11 @@
                     }
                 }
                 
-                const inputId = exerciseType === 'cardio' ? 'cardio-time' : 'other-time';
+                let inputId;
+                if (exerciseType === 'cardio') inputId = 'cardio-time';
+                else if (exerciseType === 'ssc') inputId = 'ssc-time';
+                else inputId = 'other-time';
+                
                 document.getElementById(inputId).value = timeValue;
                 
             } else if (exerciseType === 'strength') {
@@ -1001,6 +1040,14 @@
             }
             
             addToLog(currentExercise, details);
+            resetSelection();
+        }
+
+        function recordSSC() {
+            const time = document.getElementById('ssc-time').value;
+            if (!time || !currentExercise) return;
+            
+            addToLog(currentExercise, `運動時間: ${time}分`);
             resetSelection();
         }
 
@@ -1110,6 +1157,7 @@
             document.getElementById('cardio-time').value = '';
             document.getElementById('strength-weight').value = '';
             document.getElementById('strength-reps').value = '';
+            document.getElementById('ssc-time').value = '';
             document.getElementById('other-time').value = '';
         }
 
@@ -1185,12 +1233,15 @@
                 
                 const cardioExercises = ['エアロバイク', 'ランニング', '散歩'];
                 const strengthExercises = ['BSQ', 'デッドリフト', 'ダンベルプレス', '腹筋ローラー'];
-                const otherExercises = ['ストレッチ', 'SSC下半身', 'SSC上半身'];
+                const sscExercises = ['SSC上半身', 'SSC下半身'];
+                const otherExercises = ['ストレッチ'];
                 
                 if (cardioExercises.includes(entry.exercise)) {
                     workoutData[dateString].add('cardio');
                 } else if (strengthExercises.includes(entry.exercise)) {
                     workoutData[dateString].add('strength');
+                } else if (sscExercises.includes(entry.exercise)) {
+                    workoutData[dateString].add('ssc');
                 } else if (otherExercises.includes(entry.exercise)) {
                     workoutData[dateString].add('other');
                 }
@@ -1364,7 +1415,7 @@
 
         function updateProgress() {
             const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '[]');
-            const exercises = ['BSQ', 'デッドリフト', 'ダンベルプレス', '腹筋ローラー', 'エアロバイク', 'ランニング', '散歩', 'ストレッチ', 'SSC下半身', 'SSC上半身'];
+            const exercises = ['BSQ', 'デッドリフト', 'ダンベルプレス', '腹筋ローラー', 'エアロバイク', 'ランニング', '散歩', 'SSC上半身', 'SSC下半身', 'ストレッチ'];
             
             const progressData = exercises.map(exercise => {
                 const entries = workoutLog.filter(entry => entry.exercise === exercise);
@@ -1552,6 +1603,23 @@
                     details: details
                 });
                 updateFavoriteBuilder();
+            }
+        };
+
+        recordSSC = function() {
+            if (document.getElementById('favorites-tab').classList.contains('active')) {
+                const time = document.getElementById('ssc-time').value;
+                favoriteBuilder.push({
+                    exercise: currentExercise,
+                    details: `運動時間: ${time}分`
+                });
+                updateFavoriteBuilder();
+            } else {
+                const time = document.getElementById('ssc-time').value;
+                if (!time || !currentExercise) return;
+                
+                addToLog(currentExercise, `運動時間: ${time}分`);
+                resetSelection();
             }
         };
 
