@@ -481,6 +481,24 @@
             background: linear-gradient(45deg, rgba(255, 193, 7, 0.7) 50%, rgba(76, 175, 80, 0.7) 50%);
         }
 
+        /* 3種目の組み合わせ */
+        .calendar-day .cardio-strength-ssc {
+            background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 120deg, rgba(244, 67, 54, 0.7) 120deg 240deg, rgba(255, 193, 7, 0.7) 240deg 360deg);
+        }
+
+        .calendar-day .cardio-strength-other {
+            background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 120deg, rgba(244, 67, 54, 0.7) 120deg 240deg, rgba(76, 175, 80, 0.7) 240deg 360deg);
+        }
+
+        .calendar-day .cardio-ssc-other {
+            background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 120deg, rgba(255, 193, 7, 0.7) 120deg 240deg, rgba(76, 175, 80, 0.7) 240deg 360deg);
+        }
+
+        .calendar-day .strength-ssc-other {
+            background: conic-gradient(rgba(244, 67, 54, 0.7) 0deg 120deg, rgba(255, 193, 7, 0.7) 120deg 240deg, rgba(76, 175, 80, 0.7) 240deg 360deg);
+        }
+
+        /* 4種目すべて */
         .calendar-day .all-types {
             background: conic-gradient(rgba(33, 150, 243, 0.7) 0deg 90deg, rgba(244, 67, 54, 0.7) 90deg 180deg, rgba(255, 193, 7, 0.7) 180deg 270deg, rgba(76, 175, 80, 0.7) 270deg 360deg);
         }
@@ -1280,7 +1298,10 @@
                     } else if (exerciseTypes.length === 2) {
                         const sortedTypes = exerciseTypes.sort();
                         indicator.classList.add(sortedTypes.join('-'));
-                    } else if (exerciseTypes.length >= 3) {
+                    } else if (exerciseTypes.length === 3) {
+                        const sortedTypes = exerciseTypes.sort();
+                        indicator.classList.add(sortedTypes.join('-'));
+                    } else if (exerciseTypes.length === 4) {
                         indicator.classList.add('all-types');
                     }
                     
